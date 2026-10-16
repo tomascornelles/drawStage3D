@@ -101,7 +101,8 @@ function randSurf(n,R){const a=new Uint8Array(n);for(let i=0;i<n;){const l=35+R(
 function randH(n,R){const a=new Float32Array(n),p=[R()*6,R()*6,R()*6];for(let i=0;i<n;i++){const u=i/n*2*PI;a[i]=Math.max(0,Math.min(40,16+9*Math.sin(u*1.3+p[0])+5*Math.sin(u*3.1+p[1])+2*Math.sin(u*7+p[2])))}return a}
 function randW(n,R){const a=new Float32Array(n),p=[R()*6,R()*6];for(let i=0;i<n;i++){const u=i/n*2*PI;a[i]=Math.max(2.4,Math.min(6.5,3.7+.8*Math.sin(u*4+p[0])+.5*Math.sin(u*9+p[1])))}return a}
 function randHouses(n,R){const a=new Uint8Array(n);for(let c=0,m=4+(R()*5|0);c<m;c++){const s=EN+10+R()*(n-2*EN-80)|0,l=18+R()*34|0;for(let q=s;q<Math.min(n-EN-6,s+l);q++)a[q]=1}return a}
-function newTrack(P){const seed=Math.random()*1e9|0,R=rng(seed),Pe=extend(P),n=Pe.length;cur={P:Pe,seed,s0:EN,f0:n-1-EN,surf:randSurf(n,R),hgt:randH(n,R),w:randW(n,R),hs:randHouses(n,R)};best=null}
+function rndName(){const A=['Dusty','Wild','Frozen','Misty','Rocky','Golden','Hidden','Lost','Windy','Silent','Crimson','Broken','Rolling','Savage','Sunny','Stormy'],B=['Ridge','Valley','Pass','Forest','Canyon','Coast','Summit','Hollow','Creek','Mesa','Hills','Gorge','Plateau','Marsh','Peak','Trail'];return A[Math.random()*A.length|0]+' '+B[Math.random()*B.length|0]}
+function newTrack(P){const seed=Math.random()*1e9|0,R=rng(seed),Pe=extend(P),n=Pe.length;cur={name:rndName(),P:Pe,seed,s0:EN,f0:n-1-EN,surf:randSurf(n,R),hgt:randH(n,R),w:randW(n,R),hs:randHouses(n,R)};best=null}
 function derive(){const P=cur.P;N=P.length;Px=P.map(p=>p.x);Pz=P.map(p=>p.y);cum=[0];for(let i=1;i<N;i++)cum[i]=cum[i-1]+Math.hypot(Px[i]-Px[i-1],Pz[i]-Pz[i-1]);
  Tx=[];Tz=[];for(let i=0;i<N;i++){const a=Math.max(0,i-1),b=Math.min(N-1,i+1),dx=Px[b]-Px[a],dz=Pz[b]-Pz[a],l=Math.hypot(dx,dz)||1;Tx.push(dx/l);Tz.push(dz/l)}
  const bx=(src,it,r)=>{let h=Float32Array.from(src);for(;it>0;it--)h=h.map((_,i)=>{let s=0,n=0;for(let q=-r;q<=r;q++){const k=i+q;if(k>=0&&k<N){s+=h[k];n++}}return s/n});return h};
@@ -158,7 +159,7 @@ function brush(x,y){if(!cur)return;const r=bsz/LY.sc,wx=(x-LY.cx)/LY.sc,wz=(y-LY
 cv.addEventListener('pointerdown',e=>{e.preventDefault();cv.setPointerCapture(e.pointerId);bpos={x:e.clientX,y:e.clientY};
  if(tool=='path'){raw=[{x:e.clientX,y:e.clientY}];drawing=true}else if(cur){stroke={x:e.clientX,y:e.clientY};brush(e.clientX,e.clientY)}paint()});
 cv.addEventListener('pointermove',e=>{bpos={x:e.clientX,y:e.clientY};if(drawing)raw.push({x:e.clientX,y:e.clientY});else if(stroke){const dx=e.clientX-stroke.x,dy=e.clientY-stroke.y,n=Math.max(1,Math.ceil(Math.hypot(dx,dy)/6));for(let q=1;q<=n;q++)brush(stroke.x+dx*q/n,stroke.y+dy*q/n);stroke={x:e.clientX,y:e.clientY}}paint()});
-function up(){if(drawing){drawing=false;const P=make(raw);raw=[];if(P){newTrack(P);derive();build3D();setTool('surf');toast('Stage created with random terrain')}else toast('Stage too short');paint()}
+function up(){if(drawing){drawing=false;const P=make(raw);raw=[];if(P){newTrack(P);derive();build3D();setTool('surf');toast('Stage created: '+cur.name+' (random terrain)')}else toast('Stage too short');paint()}
  else if(stroke){stroke=null;best=null;derive();build3D();paint()}}
 cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
 // ---------- Draw menu: install app, save / load tracks ----------
@@ -166,37 +167,38 @@ let instDone=false,xdel=null;const TK='dr_tracks',esc=t=>String(t).replace(/[&<>
 const tkGet=()=>{try{const a=JSON.parse(localStorage.getItem(TK));return Array.isArray(a)?a:[]}catch(e){return[]}},tkSet=a=>{try{localStorage.setItem(TK,JSON.stringify(a));return true}catch(e){return false}};
 function tkPack(name,id){const r=v=>Math.round(v*100)/100;return{id,name,date:Date.now(),seed:cur.seed,s0:cur.s0,f0:cur.f0,P:cur.P.map(p=>[r(p.x),r(p.y)]),surf:Array.from(cur.surf).join(''),hs:Array.from(cur.hs).join(''),hgt:Array.from(cur.hgt,r),w:Array.from(cur.w,r),best:best?{t:best.t,sp:best.sp.slice()}:null}}
 function tkOpen(t){try{const n=t.P.length;if(t.surf.length!=n||t.hs.length!=n||t.hgt.length!=n||t.w.length!=n)throw 0;
- cur={P:t.P.map(q=>({x:q[0],y:q[1]})),seed:t.seed,s0:t.s0,f0:t.f0,surf:Uint8Array.from(t.surf,Number),hgt:Float32Array.from(t.hgt),w:Float32Array.from(t.w),hs:Uint8Array.from(t.hs,Number),sid:t.id};
+ cur={name:t.name,P:t.P.map(q=>({x:q[0],y:q[1]})),seed:t.seed,s0:t.s0,f0:t.f0,surf:Uint8Array.from(t.surf,Number),hgt:Float32Array.from(t.hgt),w:Float32Array.from(t.w),hs:Uint8Array.from(t.hs,Number),sid:t.id};
  best=t.best?{t:t.best.t,sp:t.best.sp.slice()}:null;derive();build3D();setTool('surf');return true}catch(e){return false}}
 function xm(v,a){const T=tkGet(),B=(d,t,c)=>`<button data-x="${d}"${c?` class="${c}"`:''}>${t}</button>`;let h;
- if(v=='menu')h='<h3>☰ Menu</h3>'+(instDone?'':B('inst','⬇ Install app'))+'<div class="sec">TRACK</div>'+B('sv','💾 Save track')+B('ld','📂 Load track')+B('sh','🔗 Share track')+B('cl','✕ Close');
- else if(v=='sv'){const ex=T.find(t=>t.id==(cur&&cur.sid)),def=ex?ex.name:'Track '+(T.length+1);
+ if(v=='menu')h='<h3>☰ Menu</h3>'+(instDone?'':B('inst','⬇ Install app'))+'<div class="sec">TRACK</div>'+B('sv','💾 Save track')+B('ld','📂 Load track')+B('sh','🔗 Share track')+'<div class="sec">RESULTS</div>'+B('vf','✅ Verify result')+B('cl','✕ Close');
+ else if(v=='sv'){const ex=T.find(t=>t.id==(cur&&cur.sid)),def=ex?ex.name:cur.name||'Track '+(T.length+1);
   h='<h3>💾 Save track</h3><small>Name</small><input id="xn" class="xi" type="text" maxlength="40" value="'+esc(def)+'"><small>'+(best?'Best time saved: '+fmt(best.t):'No stage time yet.')+'</small>'+B('do','Save','ed')+(ex?B('new','Save as new'):'')+B('menu','← Back')}
  else if(v=='ld')h='<h3>📂 Load track</h3>'+(T.length?'<div class="trl">'+T.map(t=>`<div class="tr"><button class="tb tn" data-x="open:${t.id}"><b>${esc(t.name)}</b><small>🏁 ${t.best?fmt(t.best.t):'--:--.-'}</small></button><button data-x="rn:${t.id}" title="Rename">✏️</button><button data-x="dl:${t.id}" title="Delete">${xdel==t.id?'Sure?':'🗑'}</button></div>`).join('')+'</div>':'<small>No saved tracks yet.</small>')+B('menu','← Back');
  else if(v=='rn'){const t=T.find(t=>t.id==a);if(!t)return xm('ld');h='<h3>✏️ Rename track</h3><input id="xn" class="xi" type="text" maxlength="40" value="'+esc(t.name)+'">'+B('rnok:'+a,'OK','ed')+B('ld','Cancel')}
  ov(h);const i=$('xn');if(i){i.focus();i.select()}}
 $('bMe').onclick=()=>{xdel=null;xm('menu')};
-$('ovc').addEventListener('click',e=>{const b=e.target.closest('button[data-x]');if(!b||state!='draw')return;const[d,a]=b.dataset.x.split(':');
+$('ovc').addEventListener('click',e=>{const b=e.target.closest('button[data-x]');if(!b)return;const[d,a]=b.dataset.x.split(':');if(d=='img')return resImg();if(state!='draw')return;
  if(d=='menu'||d=='ld'){xdel=null;xm(d)}else if(d=='cl')ov('');
  else if(d=='inst'){ov('');if(ipEvt){ipEvt.prompt();ipEvt=null}else toast('Install: browser menu → Install app, or Share → Add to Home Screen')}
  else if(d=='sv'){if(!cur)return toast('Draw a stage first');xm('sv')}
+ else if(d=='vf')vfView();else if(d=='vc')vfRun($('xc').value);else if(d=='vi')$('xf').click();
  else if(d=='sh'){if(!cur)return toast('Draw a stage first');shareView()}
  else if(d=='cp'){const i=$('xu');i.select();(navigator.clipboard?navigator.clipboard.writeText(shUrl):Promise.reject()).then(()=>toast('Link copied'),()=>{try{document.execCommand('copy');toast('Link copied')}catch(e){toast('Select the link and copy it')}})}
  else if(d=='shr'){try{navigator.share({title:'DrawRally3D track',url:shUrl}).catch(()=>{})}catch(e){}}
- else if(d=='do'||d=='new'){const T=tkGet(),ex=d=='do'&&T.find(t=>t.id==cur.sid),name=($('xn').value.trim()||'Track '+(T.length+1)).slice(0,40),id=ex?ex.id:Date.now().toString(36)+(Math.random()*1e4|0).toString(36),p=tkPack(name,id);
-  if(ex)T[T.indexOf(ex)]=p;else T.push(p);if(tkSet(T)){cur.sid=id;ov('');toast('Track saved: '+name)}else toast('Could not save (storage full)')}
+ else if(d=='do'||d=='new'){const T=tkGet(),ex=d=='do'&&T.find(t=>t.id==cur.sid),name=($('xn').value.trim()||cur.name||'Track '+(T.length+1)).slice(0,40),id=ex?ex.id:Date.now().toString(36)+(Math.random()*1e4|0).toString(36),p=tkPack(name,id);
+  if(ex)T[T.indexOf(ex)]=p;else T.push(p);if(tkSet(T)){cur.sid=id;cur.name=name;ov('');toast('Track saved: '+name)}else toast('Could not save (storage full)')}
  else if(d=='open'){const t=tkGet().find(t=>t.id==a);if(t&&tkOpen(t)){ov('');toast('Loaded: '+t.name)}else toast('Could not load track')}
  else if(d=='rn')xm('rn',a);
- else if(d=='rnok'){const T=tkGet(),t=T.find(t=>t.id==a);if(t){t.name=($('xn').value.trim()||t.name).slice(0,40);tkSet(T)}xm('ld')}
+ else if(d=='rnok'){const T=tkGet(),t=T.find(t=>t.id==a);if(t){t.name=($('xn').value.trim()||t.name).slice(0,40);tkSet(T);if(cur&&cur.sid==a)cur.name=t.name}xm('ld')}
  else if(d=='dl'){if(xdel==a){tkSet(tkGet().filter(t=>t.id!=a));xdel=null}else xdel=a;xm('ld')}});
-$('ovc').addEventListener('keydown',e=>{if(e.key=='Enter'&&e.target.id=='xn'){const b=$('ovc').querySelector('button.ed');if(b)b.click()}});
+$('ovc').addEventListener('keydown',e=>{if(e.key=='Enter'&&(e.target.id=='xn'||e.target.id=='xc')){const b=$('ovc').querySelector('button.ed');if(b)b.click()}});
 $('ov').addEventListener('pointerdown',e=>{if(e.target.id=='ov'&&state=='draw')ov('')});
 // ---------- Share track by URL ----------
 let shUrl='';
 const b64=u=>{let t='';for(let i=0;i<u.length;i+=8192)t+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return btoa(t).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')},
  unb64=t=>{t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';const q=atob(t),u=new Uint8Array(q.length);for(let i=0;i<q.length;i++)u[i]=q.charCodeAt(i);return u},
  zpipe=async(b,s)=>{const w=s.writable.getWriter();w.write(b);w.close();return new Uint8Array(await new Response(s.readable).arrayBuffer())};
-function shEnc(){const a=[],v=n=>{n=Math.max(0,Math.round(n));while(n>127){a.push(n%128+128);n=Math.floor(n/128)}a.push(n)},z=n=>v(n<0?-2*n-1:2*n),n=cur.P.length,nm=((tkGet().find(t=>t.id==cur.sid)||{}).name||'').slice(0,40),nb=new TextEncoder().encode(nm);
+function shEnc(){const a=[],v=n=>{n=Math.max(0,Math.round(n));while(n>127){a.push(n%128+128);n=Math.floor(n/128)}a.push(n)},z=n=>v(n<0?-2*n-1:2*n),n=cur.P.length,nm=(cur.name||'').slice(0,40),nb=new TextEncoder().encode(nm);
  v(1);v(cur.seed);v(n);v(cur.s0);v(cur.f0);v(nb.length);nb.forEach(c=>a.push(c));
  let px=0,py=0,dx=0,dy=0;cur.P.forEach(p=>{const x=Math.round(p.x*20),y=Math.round(p.y*20),ex=x-px,ey=y-py;z(ex-dx);z(ey-dy);dx=ex;dy=ey;px=x;py=y});
  let q=0;for(let i=0;i<n;i++){const h=Math.round(cur.hgt[i]*10);z(h-q);q=h}q=0;for(let i=0;i<n;i++){const h=Math.round(cur.w[i]*20);z(h-q);q=h}
@@ -216,10 +218,53 @@ async function shUrlBuild(){let u=shEnc(),m='r';if(typeof CompressionStream!='un
  return location.href.split('#')[0]+'#t='+m+b64(u)}
 async function shLoad(){const m=/^#t=([zr])([\w-]+)$/.exec(location.hash);if(!m)return;
  try{let u=unb64(m[2]);if(m[1]=='z')u=await zpipe(u,new DecompressionStream('deflate-raw'));const d=shDec(u);if(state!='draw')edit();ov('');
-  cur=d.t;best=null;derive();build3D();setTool('surf');toast('Shared track loaded'+(d.name?': '+d.name:''))}catch(e){toast('Invalid shared link')}
+  cur=d.t;cur.name=d.name||rndName();best=null;derive();build3D();setTool('surf');toast('Shared track loaded'+(d.name?': '+d.name:''))}catch(e){toast('Invalid shared link')}
  try{history.replaceState(null,'',location.href.split('#')[0])}catch(e){}}
 async function shareView(){ov('<h3>🔗 Share track</h3><small>Preparing link…</small>');try{shUrl=await shUrlBuild()}catch(e){return toast('Could not create link')}if($('ov').hidden)return;
  ov('<h3>🔗 Share track</h3><small>Anyone opening this link gets this stage: path, terrain, surface, width and houses.</small><input id="xu" class="xi" type="text" readonly value="'+esc(shUrl)+'"><small>Link length: '+shUrl.length+' characters</small><button data-x="cp" class="ed">📋 Copy link</button>'+(navigator.share?'<button data-x="shr">📤 Share…</button>':'')+'<button data-x="menu">← Back</button>')}
+// ---------- Result image + verification ----------
+function sha256(m){const P=[];for(let n=2;P.length<64;n++)if(P.every(p=>n%p))P.push(n);
+ const K=P.map(p=>Math.floor(Math.cbrt(p)%1*4294967296)),S=P.slice(0,8).map(p=>Math.floor(Math.sqrt(p)%1*4294967296)),l=m.length,n=(l+72>>6)<<6,b=new Uint8Array(n),dv=new DataView(b.buffer),w=new Uint32Array(64),R=(x,k)=>x>>>k|x<<32-k;
+ b.set(m);b[l]=128;dv.setUint32(n-8,Math.floor(l/536870912));dv.setUint32(n-4,l*8>>>0);
+ for(let o=0;o<n;o+=64){for(let i=0;i<16;i++)w[i]=dv.getUint32(o+i*4);for(let i=16;i<64;i++){const a=w[i-15],c=w[i-2];w[i]=w[i-16]+(R(a,7)^R(a,18)^a>>>3)+w[i-7]+(R(c,17)^R(c,19)^c>>>10)}
+  let V=S.slice();for(let i=0;i<64;i++){const[a,b1,c,d,e,f,g,h]=V,t1=h+(R(e,6)^R(e,11)^R(e,25))+((e&f)^(~e&g))+K[i]+w[i],t2=(R(a,2)^R(a,13)^R(a,22))+((a&b1)^(a&c)^(b1&c));V=[(t1+t2)>>>0,a,b1,c,(d+t1)>>>0,e,f,g]}
+  for(let i=0;i<8;i++)S[i]=(S[i]+V[i])>>>0}
+ const o=new Uint8Array(32),ov2=new DataView(o.buffer);S.forEach((x,i)=>ov2.setUint32(i*4,x));return o}
+const RSALT=new TextEncoder().encode('drawrally3d/result/v1');
+function resSig(u){const a=new Uint8Array(RSALT.length*2+u.length);a.set(RSALT);a.set(u,RSALT.length);a.set(RSALT,RSALT.length+u.length);return b64(sha256(a)).slice(0,11)}
+function resCode(r){const a=[],v=n=>{n=Math.max(0,Math.round(n));while(n>127){a.push(n%128+128);n=Math.floor(n/128)}a.push(n)},nb=new TextEncoder().encode(r.name.slice(0,40));
+ v(nb.length);nb.forEach(c=>a.push(c));r.sp.forEach(v);v(r.tyre);v(r.hl);const u=Uint8Array.from(a);return 'DR1.'+b64(u)+'.'+resSig(u)}
+function resDec(b){let p=0;const v=()=>{let r=0,m=1,c;do{if(p>=b.length)throw 0;c=b[p++];r+=(c&127)*m;m*=128}while(c&128);return r},nl=v();if(nl>160||p+nl>b.length)throw 0;
+ const name=new TextDecoder().decode(b.slice(p,p+nl));p+=nl;const sp=[v(),v(),v()],tyre=v(),hl=v();
+ if(p!=b.length||!(sp[0]>0&&sp[1]>=sp[0]&&sp[2]>=sp[1])||tyre>2||hl>100)throw 0;return{name,sp,tyre,hl}}
+function resCheck(c){const m=/DR1\.([\w-]+)\.([\w-]{11})/.exec(c||'');if(!m)return null;try{const u=unb64(m[1]);if(resSig(u)!=m[2])return null;return resDec(u)}catch(e){return null}}
+const crcT=(()=>{const t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^c>>>1:c>>>1;t[n]=c>>>0}return t})(),crc32=b=>{let c=-1;for(let i=0;i<b.length;i++)c=crcT[(c^b[i])&255]^c>>>8;return(c^-1)>>>0};
+function pngText(u8,key,val){const en=new TextEncoder(),k=en.encode(key+'\0'+val),body=new Uint8Array(4+k.length);body.set(en.encode('tEXt'));body.set(k,4);
+ const ch=new Uint8Array(12+k.length),dv=new DataView(ch.buffer);dv.setUint32(0,k.length);ch.set(body,4);dv.setUint32(8+k.length,crc32(body));
+ const o=new Uint8Array(u8.length+ch.length);o.set(u8.subarray(0,33));o.set(ch,33);o.set(u8.subarray(33),33+ch.length);return o}
+function pngRead(u8){const dv=new DataView(u8.buffer,u8.byteOffset,u8.byteLength);let p=8;while(p+12<=u8.length){const l=dv.getUint32(p),t=String.fromCharCode(u8[p+4],u8[p+5],u8[p+6],u8[p+7]);
+ if(t=='tEXt'){const s=new TextDecoder('latin1').decode(u8.subarray(p+8,p+8+l)),i=s.indexOf('\0');if(s.slice(0,i)=='DrawRally')return s.slice(i+1)}if(t=='IEND')break;p+=12+l}return ''}
+const rtm=ms=>fmt(ms/1000);
+function resImg(){if(!cur||car.sp.length!=3)return;
+ const r={name:(cur.name||'Stage').slice(0,40),sp:car.sp.map(t=>Math.round(t*1000)),tyre,hl:Math.max(0,Math.min(100,Math.round(car.hl)))},code=resCode(r),W=800,H=1140,c=document.createElement('canvas');c.width=W;c.height=H;
+ const g=c.getContext('2d'),F='ui-monospace,Menlo,Consolas,monospace';g.fillStyle='#15181d';g.fillRect(0,0,W,H);g.textAlign='center';g.textBaseline='middle';
+ let fs=46;g.font=`700 ${fs}px ${F}`;while(g.measureText(r.name).width>W-100&&fs>20){fs-=2;g.font=`700 ${fs}px ${F}`}g.fillStyle='#fff';g.fillText(r.name,W/2,80);
+ const bx=50,by=140,bw=700,bh=500;g.fillStyle='#0a120d';g.fillRect(bx,by,bw,bh);g.strokeStyle='#1f3a28';g.lineWidth=2;g.strokeRect(bx,by,bw,bh);
+ let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9;for(let k=cur.s0;k<=cur.f0;k++){x0=Math.min(x0,Px[k]);x1=Math.max(x1,Px[k]);z0=Math.min(z0,Pz[k]);z1=Math.max(z1,Pz[k])}
+ const sc=Math.min((bw-100)/Math.max(x1-x0,1),(bh-100)/Math.max(z1-z0,1)),X=k=>bx+bw/2+(Px[k]-(x0+x1)/2)*sc,Y=k=>by+bh/2+(Pz[k]-(z0+z1)/2)*sc,MC=['#aab4c0','#c08a50','#a9a48f'];
+ g.lineCap=g.lineJoin='round';for(const pass of[0,1])for(let k=cur.s0;k<cur.f0;k++){g.strokeStyle=pass?MC[cur.surf[k]]:'#05080a';g.lineWidth=pass?9:16;g.beginPath();g.moveTo(X(k),Y(k));g.lineTo(X(k+1),Y(k+1));g.stroke()}
+ g.fillStyle='#22c55e';g.strokeStyle='#fff';g.lineWidth=3;g.beginPath();g.arc(X(cur.s0),Y(cur.s0),13,0,7);g.fill();g.stroke();
+ {const fx=X(cur.f0)-12,fy=Y(cur.f0)-12;for(let i=0;i<4;i++)for(let j=0;j<4;j++){g.fillStyle=(i+j)%2?'#fff':'#111';g.fillRect(fx+i*6,fy+j*6,6,6)}g.strokeStyle='#fff';g.lineWidth=2;g.strokeRect(fx,fy,24,24)}
+ g.fillStyle='#70e6ff';g.font=`600 22px ${F}`;g.fillText('TOTAL',W/2,700);g.fillStyle='#7dffa0';g.font=`800 120px ${F}`;g.fillText(rtm(r.sp[2]),W/2,790);
+ [r.sp[0],r.sp[1]-r.sp[0],r.sp[2]-r.sp[1]].forEach((t,i)=>{const y=890+i*55;g.textAlign='left';g.fillStyle='#8b96a5';g.font=`700 36px ${F}`;g.fillText('S'+(i+1),220,y);g.textAlign='right';g.fillStyle='#fff';g.font=`700 44px ${F}`;g.fillText(rtm(t),580,y)});
+ g.textAlign='center';g.fillStyle='#f2f4f8';g.font=`600 30px ${F}`;g.fillText(`Tyres: ${SURF[r.tyre]}   ·   Health: ${r.hl}%`,W/2,1062);
+ g.fillStyle='#6b7480';g.font=`12px ${F}`;const cw=g.measureText('M').width,pl=Math.floor((W-100)/cw);for(let i=0;i*pl<code.length;i++)g.fillText(code.slice(i*pl,(i+1)*pl),W/2,1098+i*16);
+ c.toBlob(async b=>{if(!b)return toast('Could not create image');const u=pngText(new Uint8Array(await b.arrayBuffer()),'DrawRally',code),url=URL.createObjectURL(new Blob([u],{type:'image/png'})),a=document.createElement('a');
+  a.href=url;a.download='drawrally-'+r.name.replace(/[^\w]+/g,'-').toLowerCase()+'-'+rtm(r.sp[2]).replace(':','m')+'.png';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);toast('Result image saved')},'image/png')}
+function vfView(msg,code){ov('<h3>✅ Verify result</h3><small>Paste the result code printed on the image, or load the PNG itself as downloaded from the game.</small><input id="xc" class="xi" type="text" placeholder="DR1.…" autocomplete="off" spellcheck="false" value="'+esc(code||'')+'"><button data-x="vc" class="ed">Verify code</button><button data-x="vi">🖼 Verify from image</button><input id="xf" type="file" accept="image/png" hidden>'+(msg||'')+'<button data-x="menu">← Back</button>')}
+function vfRun(code){const r=resCheck(code);vfView(r?`<div style="color:#7dffa0"><b>✓ Valid result</b></div><table><tr><td>Track</td><td>${esc(r.name)}</td></tr><tr><td>Total</td><td>${rtm(r.sp[2])}</td></tr><tr><td>S1</td><td>${rtm(r.sp[0])}</td></tr><tr><td>S2</td><td>${rtm(r.sp[1]-r.sp[0])}</td></tr><tr><td>S3</td><td>${rtm(r.sp[2]-r.sp[1])}</td></tr><tr><td>Tyres</td><td>${SURF[r.tyre]}</td></tr><tr><td>Health</td><td>${r.hl}%</td></tr></table>`:'<div style="color:#ff6b5b"><b>✗ Not valid</b></div><small>The code is incomplete or has been modified.</small>',code)}
+$('ovc').addEventListener('change',async e=>{if(e.target.id!='xf'||!e.target.files[0])return;let c='';try{c=pngRead(new Uint8Array(await e.target.files[0].arrayBuffer()))}catch(x){}
+ if(c)vfRun(c);else vfView('<small style="color:#ff6b5b">No result code found in this image (some apps strip it when sharing). Type the code instead.</small>')});
 addEventListener('appinstalled',()=>instDone=true);
 $('bNew').onclick=()=>{cur=null;N=0;raw=[];setTool('path')};
 // ---------- Three.js ----------
@@ -324,7 +369,7 @@ addEventListener('keyup',e=>{delete down[e.code]});addEventListener('blur',()=>{
 for(const[id,k]of[['pL','l'],['pR','r'],['pH','h'],['pB','b'],['pG','g']]){const e=$(id),s=v=>ev=>{ev.preventDefault();I[k]=v;e.classList.toggle('a',!!v)};e.addEventListener('pointerdown',s(1));['pointerup','pointercancel','pointerleave'].forEach(n=>e.addEventListener(n,s(0)))}
 function splitShow(i,t){const b=best&&best.sp[i]!=null?t-best.sp[i]:null,e=$('split');e.innerHTML=`⏱ CP ${i+1} &nbsp;${fmt(t)}`+(b==null?'':` &nbsp;<span style="color:${b<=0?'#7dffa0':'#ff6b5b'}">${fd(b)}</span>`);e.style.opacity=1;clearTimeout(splitShow.t);splitShow.t=setTimeout(()=>e.style.opacity=0,4500)}
 function finish(){car.fin=1;car.run=0;const old=best,rows=car.sp.map((t,i)=>`<tr><td>${i<2?'CP '+(i+1):'Finish'}</td><td>${fmt(t)}</td><td style="color:${old&&t<=old.sp[i]?'#7dffa0':'#ff6b5b'}">${old?fd(t-old.sp[i]):''}</td></tr>`).join(''),nb=!old||car.t<old.t;if(nb)best={t:car.t,sp:car.sp.slice()};
- ov(`<h3>🏁 Stage complete</h3><b class="t">${fmt(car.t)}</b>${nb?'<small style="color:#7dffa0">NEW BEST</small>':''}<table>${rows}</table><small>Best: ${fmt(best.t)} · Tyres: ${SURF[tyre]} · Health: ${Math.round(car.hl)}%</small><button data-re="1">↻ Retry stage</button><button data-ed="1">← Editor</button>`)}
+ ov(`<h3>🏁 Stage complete</h3><b class="t">${fmt(car.t)}</b>${nb?'<small style="color:#7dffa0">NEW BEST</small>':''}<table>${rows}</table><small>Best: ${fmt(best.t)} · Tyres: ${SURF[tyre]} · Health: ${Math.round(car.hl)}%</small><button data-x="img">🖼 Result image</button><button data-re="1">↻ Retry stage</button><button data-ed="1">← Editor</button>`)}
 let lastCope='';
 function update(dt){
  if(cd>0){cd-=dt;$('cd').textContent=cd>.05?Math.ceil(cd):'GO!';if(cd<=0){car.run=1;setTimeout(()=>$('cd').textContent='',900)}}
@@ -363,7 +408,7 @@ let menuOpen=false,terrMat=null,hMat=null,U={g:0,b:0,s:0,h:0},mmF=0,mmBG,mmS=1,m
 try{gfx=+localStorage.getItem('dr_gfx');if(!(gfx>=0&&gfx<=2))gfx=1}catch(e){gfx=1}
 function setGfx(n){gfx=n;try{localStorage.setItem('dr_gfx',n)}catch(e){}gfxApply()}
 function gfxApply(){renderer.setPixelRatio(gfx==0?1:gfx==1?dpr:Math.min(3,dpr*1.5));renderer.setSize(innerWidth,innerHeight);scene.fog.far=gfx==0?500:1000;sun.castShadow=gfx==2;if(grp)grp.traverse(o=>{const u=o.userData;if(u.t3)o.visible=gfx==0;if(u.tbb)o.visible=gfx>0;if(u.perf)o.count=Math.ceil(u.n*(gfx==0?(u.t3?.4:.25):1))});if(terrMat){terrMat.map=gfx?terrTex(gfx):null;terrMat.needsUpdate=true}if(hMat){const q=gfx==2;hMat.w.map=q?houseTex(0):winTex();hMat.g.map=hMat.h.map=q?houseTex(1):null;hMat.c.map=q?houseTex(2):null;for(const k in hMat)hMat[k].needsUpdate=true}
- if(mTape){const q=gfx==2;[[mTape,0,0xe21b1b],[mRail,1,0xb8bec6],[mRailD,2,0x6b7079],[mWall,3,0x9a9184]].forEach(([m,i,c])=>{m.map=q?barTex(i):null;m.color.setHex(q?0xffffff:c);m.needsUpdate=true})}}
+ if(mTape){const q=gfx==2;[[mTape,0,0xe21b1b],[mRail,1,0xb8bec6],[mRailD,2,0x6b7079],[mWall,3,0x9a9184]].forEach(([m,i,c])=>{m.map=q?barTex(i):i==2?barTex(4):null;m.color.setHex(q?0xffffff:c);if(i==2)m.alphaTest=.3;m.needsUpdate=true})}}
 function padOn(){try{return[...navigator.getGamepads()].some(x=>x&&x.connected)}catch(e){return false}}
 function ka(a){return cmode=='kb'&&kb[a].some(c=>c&&down[c])?1:0}
 function pad(){const u={g:Math.max(ka('g'),I.g),b:Math.max(ka('b'),I.b),h:Math.max(ka('h'),I.h),s:ka('r')-ka('l')+I.r-I.l};
@@ -497,17 +542,17 @@ function pwaInit(){try{const mk=n=>{const c=document.createElement('canvas');c.w
  l=document.createElement('link');l.rel='manifest';l.href=URL.createObjectURL(new Blob([JSON.stringify(man)],{type:'application/manifest+json'}));document.head.appendChild(l);const a=document.createElement('link');a.rel='apple-touch-icon';a.href=i1;document.head.appendChild(a)}catch(e){}}
 // ---------- Barrier textures (Quality mode) ----------
 const BTX={};
-function barTex(i){if(BTX[i])return BTX[i];const R=rng(900+i),W=i==0?256:512,H=[64,64,128,128][i],c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
+function barTex(i){if(BTX[i])return BTX[i];const R=rng(900+i),W=i==0?256:512,H=[64,64,128,128,64][i],c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
  if(i==0){const im=g.createImageData(W,H);for(let y=0;y<H;y++)for(let x=0;x<W;x++){const red=((x+y)%64)<32,k=(y*W+x)*4,e=Math.min(y,H-1-y),f=(.88+.2*Math.sin(y/(H-1)*PI))*(e<3?.8:1),n=(hs_(x*3,y*7)-.5)*16,b=red?[226,27,27]:[240,240,232];for(let q=0;q<3;q++)im.data[k+q]=Math.max(0,Math.min(255,b[q]*f+n));im.data[k+3]=255}g.putImageData(im,0,0)}
  else if(i==1){for(let y=0;y<H;y++){const p=y/H;let l=.76+.2*Math.sin(p*4*PI+.6);if(p<.07||p>.93)l*=.72;g.fillStyle=`rgb(${196*l|0},${203*l|0},${211*l|0})`;g.fillRect(0,y,W,1)}
   for(let n=0;n<500;n++){g.fillStyle=R()<.5?'rgba(255,255,255,.07)':'rgba(0,0,0,.07)';g.fillRect(R()*W,R()*H,20+R()*90,1)}
   for(let n=0;n<16;n++){const x=R()*W,gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'rgba(120,70,40,.0)');gr.addColorStop(1,'rgba(120,70,40,.22)');g.fillStyle=gr;g.fillRect(x,0,1+R()*2,H)}
   g.fillStyle='rgba(0,0,0,.35)';g.fillRect(0,0,3,H);g.fillRect(W-2,0,2,H);g.fillStyle='rgba(255,255,255,.3)';g.fillRect(4,0,1,H);
   for(const[x,y]of[[22,H*.3],[22,H*.7],[490,H*.3],[490,H*.7],[256,H*.5]]){g.fillStyle='#4b4f55';g.beginPath();g.arc(x,y,4.5,0,7);g.fill();g.fillStyle='#b9bec5';g.beginPath();g.arc(x-1,y-1,2.4,0,7);g.fill()}}
- else if(i==2){const gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#4d5056');gr.addColorStop(1,'#1c1f23');g.fillStyle=gr;g.fillRect(0,0,W,H);
-  for(const x of[-7,249,505]){const pg=g.createLinearGradient(x,0,x+16,0);pg.addColorStop(0,'#6f757c');pg.addColorStop(.35,'#c3c8ce');pg.addColorStop(1,'#5a6067');g.fillStyle=pg;g.fillRect(x,0,16,H)}
-  const dg=g.createLinearGradient(0,H*.7,0,H);dg.addColorStop(0,'rgba(110,86,58,0)');dg.addColorStop(1,'rgba(110,86,58,.55)');g.fillStyle=dg;g.fillRect(0,H*.7,W,H*.3);
-  for(let n=0;n<260;n++){g.fillStyle=R()<.5?'rgba(255,255,255,.06)':'rgba(0,0,0,.12)';g.fillRect(R()*W,R()*H,1+R()*3,1+R()*3)}}
+ else if(i==2){for(const x of[-7,249,505]){const pg=g.createLinearGradient(x,0,x+16,0);pg.addColorStop(0,'#6f757c');pg.addColorStop(.35,'#c3c8ce');pg.addColorStop(1,'#5a6067');g.fillStyle=pg;g.fillRect(x,0,16,H)}
+  g.globalCompositeOperation='source-atop';const dg=g.createLinearGradient(0,H*.7,0,H);dg.addColorStop(0,'rgba(110,86,58,0)');dg.addColorStop(1,'rgba(110,86,58,.55)');g.fillStyle=dg;g.fillRect(0,H*.7,W,H*.3);
+  for(let n=0;n<260;n++){g.fillStyle=R()<.5?'rgba(255,255,255,.06)':'rgba(0,0,0,.12)';g.fillRect(R()*W,R()*H,1+R()*3,1+R()*3)}g.globalCompositeOperation='source-over'}
+ else if(i==4){g.fillStyle='#fff';for(const x of[-7,249,505])g.fillRect(x,0,16,H)}
  else{const rows=[0,43,85,128];g.fillStyle='#625b50';g.fillRect(0,0,W,H);
   for(let r=0;r<3;r++){const y0=rows[r],y1=rows[r+1],L=[];let t=0;while(t<W){const l=90+R()*110;L.push(l);t+=l}const f=W/t,o=R()*W;let x=0;
    for(const l0 of L){const l=l0*f,tn=.78+R()*.4,cr=158*tn,cg=148*tn*(.97+R()*.06),cb=132*tn*(.94+R()*.1);
