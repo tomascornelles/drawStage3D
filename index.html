@@ -364,24 +364,25 @@ const TYC=[0x222222,0x6b4a2a,0xd0d0d0];function setTyre(t){tyre=t}
 const SPD=[1.12,1.06,1,.94,.88],BMP=[1.8,1.35,1,.55,.2],VIB=[1,.6,.3,.08,0];
 function tyreSvg(t){const n=[0,10,20][t],ln=[0,4,6][t];let l='';for(let i=0;i<n;i++)l+=`<rect x="22" y="3.5" width="4" height="${ln}" rx="1" fill="#7a818b" transform="rotate(${i*360/n} 24 24)"/>`;
  return `<svg width="46" height="46" viewBox="0 0 48 48"><circle cx="24" cy="24" r="22.5" fill="#1b1e23" stroke="#4a515a" stroke-width="1"/>${l}<circle cx="24" cy="24" r="13.5" fill="#2a2e35"/><circle cx="24" cy="24" r="10" fill="#aeb6c0"/><circle cx="24" cy="24" r="3.2" fill="#3b4048"/>`+[0,1,2,3,4].map(i=>`<circle cx="${(24+6.4*Math.cos(i*1.2566)).toFixed(2)}" cy="${(24+6.4*Math.sin(i*1.2566)).toFixed(2)}" r="1.1" fill="#3b4048"/>`).join('')+'</svg>'}
-function setupView(){ov('<h3>🏎 Car setup</h3><div class="sec">TYRES</div><div style="display:flex;gap:6px">'+SURF.map((s,i)=>`<button data-ty="${i}" class="${tyre==i?'on':''}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 2px">${tyreSvg(i)}<span>${s}</span></button>`).join('')+'</div><small>'+['Maximum grip on asphalt; struggles on dirt and gravel','Balanced: good on dirt, fair on gravel','Best on gravel; loses grip on asphalt'][tyre]+'</small><div class="sec">SUSPENSION</div><label>LOW <input type="range" id="su" min="0" max="4" step="1" value="'+susp+'"> HIGH</label><small>Low: faster, but harsh on bumps. High: smooth over bumps, but slower.</small><button data-go="1" class="ed">▶ Start</button><button data-ed="1">← Back to editor</button>')}
-const car={x:0,z:0,h:0,v:0,vl:0,k:0,st:0,t:0,run:0,fin:0,hit:0,hl:100,dead:0,cpn:0,sp:[],stuck:0,vm:0,ph:0,l1:null,l2:null};let MAXV=70;
-function dmg(a){if(cd>0||car.dead)return;const dd=a*.65;if(dd<10)return;car.hl=Math.max(0,car.hl-dd);if(car.hl<=0){car.dead=1;toast('Car destroyed — press R to restart')}}
+let setupOn=false;function closeMenu(){menuOpen=false;if(setupOn)setupView();else ov('')}
+function setupView(){setupOn=true;ov('<h3>🏎 Car setup</h3><div class="sec">TYRES</div><div style="display:flex;gap:6px">'+SURF.map((s,i)=>`<button data-ty="${i}" class="${tyre==i?'on':''}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 2px">${tyreSvg(i)}<span>${s}</span></button>`).join('')+'</div><small>'+['Maximum grip on asphalt; struggles on dirt and gravel','Balanced: good on dirt, fair on gravel','Best on gravel; loses grip on asphalt'][tyre]+'</small><div class="sec">SUSPENSION</div><label>LOW <input type="range" id="su" min="0" max="4" step="1" value="'+susp+'"> HIGH</label><small>Low: fastest on asphalt, but loses speed on dirt and gravel. High: absorbs rough roads, but slower on asphalt. Pick it for the surface you expect.</small><button data-go="1" class="ed">▶ Start</button><button data-ed="1">← Back to editor</button>')}
+const car={x:0,z:0,h:0,v:0,vl:0,k:0,st:0,t:0,run:0,fin:0,hit:0,hl:100,dead:0,cpn:0,sp:[],stuck:0,vm:0,ph:0,va:0,rg:0,l1:null,l2:null};let MAXV=70;
+function dmg(a){if(cd>0||car.dead)return;const dd=a*1.3;if(dd<8)return;car.hl=Math.max(0,car.hl-dd);if(car.hl<=0){car.dead=1;toast('Car destroyed — press R to restart')}}
 function ov(h){$('ovc').innerHTML=h;$('ov').hidden=!h}
 function tyreMenu(){menuOpen=false;state='drive';document.body.className=bcls('drive');rs();const k=cur.s0-1;car.k=k;car.x=Px[k];car.z=Pz[k];car.h=Math.atan2(Tx[k],Tz[k]);car.v=car.vl=car.st=car.t=0;car.run=car.fin=car.hit=car.dead=car.stuck=0;car.vm=0;car.l1=car.l2=null;car.hl=100;car.cpn=0;car.sp=[];cd=0;$('cd').textContent='';$('split').style.opacity=0;
  camera.position.set(car.x+Math.sin(car.h)*1.4,hh[k]+1.15,car.z+Math.cos(car.h)*1.4);
  setupView()}
-function edit(){menuOpen=false;ov('');state='draw';document.body.className=bcls('draw');rs();paint()}
+function edit(){menuOpen=false;setupOn=false;ov('');state='draw';document.body.className=bcls('draw');rs();paint()}
 $('ovc').onclick=e=>{const b=e.target.closest('button');if(!b)return;const d=b.dataset;sndInit();if(d.ed)return edit();
- if(d.ty!=null){setTyre(+d.ty);setupView()}if(d.go){ov('');cd=3.4}if(d.re||d.rs)tyreMenu();
+ if(d.ty!=null){setTyre(+d.ty);setupView()}if(d.go){setupOn=false;ov('');cd=3.4}if(d.re||d.rs)tyreMenu();
  if(d.mt){mtab=d.mt;bindWait=null;showMenu()}if(d.cm)setMode(d.cm);if(d.sw){tsw=!tsw;applyTc();saveCfg();showMenu()}if(d.sn){SND.on=!SND.on;saveCfg();showMenu()}if(d.ni){night=!night;saveCfg();applyNight();toast('Switching time of day…');setTimeout(()=>{if(cur)build3D();showMenu()},40)}if(d.gf!=null){setGfx(+d.gf);showMenu()}if(d.iv){GY.inv=!GY.inv;saveCfg();showMenu()}
  if(d.kb){const[a,q]=d.kb.split(':'),w=bindWait,same=w&&w.kind=='kb'&&w.a==a&&w.s==+q;bindWait=same?null:{kind:'kb',a,s:+q};showMenu()}
  if(d.pb){const[a,q]=d.pb.split(':'),w=bindWait,same=w&&w.kind=='pad'&&w.a==a&&w.s==+q;bindWait=same?null:{kind:'pad',a,s:+q};showMenu()}
  if(d.kc){kb[d.kc]=['',''];saveCfg();showMenu()}if(d.pc){pm[d.pc]=[-1,-1];saveCfg();showMenu()}
  if(d.kr){kb=JSON.parse(JSON.stringify(KB0));saveCfg();showMenu()}if(d.pr){pm=JSON.parse(JSON.stringify(PM0));pc={...PC0};saveCfg();showMenu()}
- if(d.ps){pc.src=d.ps;saveCfg();showMenu()}if(d.cl){bindWait=null;menuOpen=false;ov('')}};
+ if(d.ps){pc.src=d.ps;saveCfg();showMenu()}if(d.cl){bindWait=null;closeMenu()}};
 $('ovc').oninput=e=>{const t=e.target;if(t.id=='dz')pc.dz=t.value/100;if(t.id=='gk')GY.k=57-t.value;if(t.id=='su')susp=+t.value;if(t.id=='ts'){tsz=t.value/100;applyTc()}saveCfg()};
-$('ov').addEventListener('pointerdown',e=>{if(e.target.id=='ov'&&menuOpen){bindWait=null;menuOpen=false;ov('')}});
+$('ov').addEventListener('pointerdown',e=>{if(e.target.id=='ov'&&menuOpen){bindWait=null;closeMenu()}});
 $('bMn').onclick=()=>toggleMenu();
 $('bGo').onclick=()=>{if(!cur)return toast('Draw a stage first');tyreMenu()};
 addEventListener('keydown',e=>{if(bindWait&&bindWait.kind=='kb'){e.preventDefault();const w=bindWait,v=e.code;bindWait=null;for(const a in kb)kb[a]=kb[a].map(c=>c==v?'':c);kb[w.a][w.s]=v;saveCfg();showMenu();return}
@@ -397,11 +398,11 @@ function update(dt){
  let bk=car.k,bd=1e18;for(let q=-15;q<=15;q++){const k=Math.max(0,Math.min(N-1,car.k+q)),dx=car.x-Px[k],dz=car.z-Pz[k],d=dx*dx+dz*dz;if(d<bd){bd=d;bk=k}}car.k=bk;const k=bk,k2=Math.min(N-1,k+1),k1=Math.max(0,k-1);
  const rx=-Tz[k],rz=Tx[k],dx=car.x-Px[k],dz=car.z-Pz[k],dl=dx*rx+dz*rz,al=dx*Tx[k]+dz*Tz[k],sf=Math.sin(car.h)*Tx[k]+Math.cos(car.h)*Tz[k];
  if((k==N-1&&al>0)||(k==0&&al<0)){car.x-=Tx[k]*al;car.z-=Tz[k]*al;car.v*=.5}
- const sfc=cur.surf[k],hw=Wv[k],off=Math.abs(dl)>hw;let gr=GR[tyre][sfc]*S0[sfc]*(off?.75:1);const hf=car.hl/100,mx=MAXV*(.5+.5*Math.min(1,gr))*(.45+.55*hf)*SPD[susp];
+ const sfc=cur.surf[k],hw=Wv[k],off=Math.abs(dl)>hw;let gr=GR[tyre][sfc]*S0[sfc]*(off?.75:1);const hf=car.hl/100,mx=MAXV*(.5+.5*Math.min(1,gr))*(.45+.55*hf)*SPD[susp]*(1-[0,.25,.45][sfc]*((4-susp)/4)**2);
  const live=car.run&&!car.fin;let tg=live?U.s:0;car.st+=(tg-car.st)*Math.min(1,dt*8);const hb=live&&U.h>.5?1:0;
  if(live){if(U.g>.1&&!car.dead)car.v+=48*U.g*(.3+.7*gr)*(.4+.6*hf)*(1-Math.max(0,car.v)/mx)*dt*(car.v<0?2:1);else if(U.b<.1)car.v-=Math.sign(car.v)*Math.min(Math.abs(car.v),(car.dead?22:5)*dt);
   if(U.b>.1){if(car.v>.5)car.v-=60*U.b*(.5+.5*gr)*dt;else car.v=Math.max(-8,car.v-14*dt)}}
- else car.v*=Math.exp(-(car.fin?1.4:6)*dt);
+ else if(car.fin)car.v-=Math.sign(car.v)*Math.min(Math.abs(car.v),8*dt);else car.v*=Math.exp(-6*dt);
  if(!car.run&&!car.fin)car.v=car.vl=0;
  if(car.v>mx)car.v+=(mx-car.v)*Math.min(1,dt*2);
  const gs=Math.min(1,gr)*(hb?.3:1),f=Math.min(1,Math.abs(car.v)/9)*(1-.45*Math.min(1,Math.abs(car.v)/MAXV))*Math.sign(car.v)*(.55+.45*Math.min(1,gr));
@@ -412,11 +413,11 @@ function update(dt){
    const ta=Math.atan2(Tx[k],Tz[k]),dh=Math.atan2(Math.sin(ta-car.h),Math.cos(ta-car.h)),out=(Math.sin(car.h)*rx+Math.cos(car.h)*rz)*Math.sign(dl)>.2;car.stuck=Math.abs(car.v)<3?car.stuck+dt:0;
    car.h+=dh*Math.min(1,dt*((o!=1?2.5:0)+(out?3:0)+(car.stuck>.4?4:0)));if(car.stuck>.4){car.x-=rx*s*dt*3;car.z-=rz*s*dt*3}}else{car.hit=0;car.stuck=0}}
  if(live){car.t+=dt;car.vm=Math.max(car.vm,Math.abs(car.v));while(car.cpn<3&&car.k>=CP[car.cpn]){const t=car.t,i=car.cpn++;car.sp.push(t);if(i<2)splitShow(i,t)}if(car.cpn==3)finish()}
- const sl=(hh[k2]-hh[k1])/((cum[k2]-cum[k1])||1)*(sf<0?-1:1);if(car.run||car.fin)car.v-=sl*18*dt;
+ const sl=(hh[k2]-hh[k1])/((cum[k2]-cum[k1])||1)*(sf<0?-1:1);if(car.run)car.v-=sl*18*dt;
  let y=hh[k];y+=al>0?(hh[k2]-hh[k])*Math.min(1,al/((cum[k2]-cum[k])||1)):(hh[k]-hh[k1])*Math.max(-1,al/((cum[k]-cum[k1])||1));
  // cockpit camera, kept inside the barriers
  let cx=car.x+Math.sin(car.h)*1.4,cz=car.z+Math.cos(car.h)*1.4;{const dc=(cx-Px[k])*rx+(cz-Pz[k])*rz,o=dc<0?bl[k]:br[k],lm=hw+(o==1?1.7:1)-.45,e=Math.abs(dc)-lm;if(e>0){const s=Math.sign(dc);cx-=rx*s*e;cz-=rz*s*e}}
- if(car.l1==null)car.l1=car.l2=y;{const a=Math.min(1,dt*9);car.l1+=(y-car.l1)*a;car.l2+=(car.l1-car.l2)*a}const ys=2*car.l1-car.l2,yc=ys+(y-ys)*BMP[susp];car.ph+=dt*(18+Math.abs(car.v)*1.2);const jt=car.run?VIB[susp]*[0,.07,.12][sfc]*Math.min(1,Math.abs(car.v)/25)*(Math.sin(car.ph)*.5+Math.sin(car.ph*2.3+1)*.3+Math.sin(car.ph*4.1+2)*.2):0;
+ if(car.l1==null)car.l1=car.l2=y;{const a=Math.min(1,dt*9);car.l1+=(y-car.l1)*a;car.l2+=(car.l1-car.l2)*a}const ys=2*car.l1-car.l2,yc=ys+(y-ys)*(1+(BMP[susp]-1)*car.rg);car.va+=([0,.12,.28][sfc]-car.va)*Math.min(1,dt*5);car.rg+=((sfc?1:0)-car.rg)*Math.min(1,dt*5);car.ph+=dt*(18+Math.abs(car.v)*1.2);const jt=car.run?VIB[susp]*car.va*Math.min(1,Math.abs(car.v)/25)*(Math.sin(car.ph)*.5+Math.sin(car.ph*2.3+1)*.3+Math.sin(car.ph*4.1+2)*.2):0;
  camera.position.set(cx,yc+jt+1.15,cz);sun.target.position.set(car.x,y,car.z);sun.position.set(car.x+200,y+400,car.z+120);
  camera.lookAt(cx+Math.sin(car.h)*20,camera.position.y+sl*20-.3,cz+Math.cos(car.h)*20);camera.rotateZ(-car.vl*.012+jt*.08);if(night)nightStep(cx,y,cz,sl);camera.fov=(innerWidth<innerHeight?74:62)+Math.min(1,Math.abs(car.v)/MAXV)*8;camera.updateProjectionMatrix();
  hudUpdate();
@@ -461,7 +462,7 @@ function showMenu(){menuOpen=true;const W=bindWait,B=(a,t,on,st)=>`<button ${a} 
   else if(cmode=='gyro')h+='<div class="sec">GYROSCOPE</div><small>Tilt the device like a steering wheel. Gas, brake and handbrake use the on-screen buttons.</small>'+B('data-iv=1','↔ Invert tilt: '+(GY.inv?'on':'off'),GY.inv)+`<label>Sensitivity <input type="range" id="gk" min="12" max="45" value="${57-GY.k}"></label>`;
   else h+='<div class="sec">TOUCH SCREEN</div><small>Steering squares and brake on one side, gas on the other, handbrake in the middle.</small>'+B('data-sw=1','↔ Steering buttons: '+(tsw?'right':'left'))+`<label>Button size <input type="range" id="ts" min="70" max="140" value="${Math.round(tsz*100)}"></label>`}
  ov(h+'<button data-ed=1 class="ed">✏️ Back to editor</button>'+B('data-rs=1','↻ Restart stage')+B('data-cl=1','✕ Close'))}
-function toggleMenu(){if(state!='drive')return;if(menuOpen){menuOpen=false;ov('')}else if($('ov').hidden)showMenu()}
+function toggleMenu(){if(state!='drive')return;if(menuOpen){closeMenu()}else if($('ov').hidden||setupOn)showMenu()}
 function mmBuild(){const S=240,c=document.createElement('canvas');c.width=c.height=S;const q=c.getContext('2d');let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9;for(let k=0;k<N;k++){x0=Math.min(x0,Px[k]);x1=Math.max(x1,Px[k]);z0=Math.min(z0,Pz[k]);z1=Math.max(z1,Pz[k])}
  mmS=(S-30)/Math.max(x1-x0,z1-z0,1);mmX=S/2-(x0+x1)/2*mmS;mmZ=S/2-(z0+z1)/2*mmS;q.lineCap=q.lineJoin='round';const MC=['#aab4c0','#c08a50','#a9a48f'],P=(k,t)=>{q.strokeStyle=t;q.beginPath();q.moveTo(Px[k]*mmS+mmX,Pz[k]*mmS+mmZ);q.lineTo(Px[k+1]*mmS+mmX,Pz[k+1]*mmS+mmZ);q.stroke()};
  q.lineWidth=8;for(let k=0;k<N-1;k++)if(cur.hs[k])P(k,'#ff9f43');q.lineWidth=4;for(let k=0;k<N-1;k++)P(k,MC[cur.surf[k]]);q.font='14px system-ui';q.textAlign='center';q.fillText('🏁',Px[cur.f0]*mmS+mmX,Pz[cur.f0]*mmS+mmZ-4);mmBG=c}
