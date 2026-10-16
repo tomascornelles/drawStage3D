@@ -53,6 +53,8 @@ body.cm-touch #pB{right:calc(var(--e) + var(--S) + var(--g))}
 body.cm-touch #pH{left:calc(var(--e) + 2*var(--S) + 2*var(--g));right:calc(var(--e) + 2*var(--S) + 2*var(--g));width:auto}
 body.cm-touch.sw #pR{left:auto;right:var(--e)}body.cm-touch.sw #pL{left:auto;right:calc(var(--e) + var(--S) + var(--g))}
 body.cm-touch.sw #pG{right:auto;left:var(--e)}body.cm-touch.sw #pB{right:auto;left:calc(var(--e) + var(--S) + var(--g))}
+input.xi{font:inherit;width:100%;background:#101317;color:#fff;border:1px solid #343a43;border-radius:6px;padding:11px 13px;user-select:text;-webkit-user-select:text}
+.trl{display:flex;flex-direction:column;gap:6px;max-height:55vh;overflow:auto;touch-action:pan-y}.tr{display:flex;gap:6px}.tr .tn{flex:1;min-width:0;text-transform:none}.tr .tn b{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tr button:not(.tn){min-width:44px;padding:11px 8px}
 #ov{position:fixed;inset:0;background:#000a;z-index:9;display:flex;align-items:center;justify-content:center;padding:16px}#ov[hidden]{display:none}
 .card{width:min(400px,100%);padding:16px;display:flex;flex-direction:column;gap:9px;max-height:100%;overflow:auto}
 .card h3{margin:0;font-size:12px;color:#70e6ff;letter-spacing:.16em;text-transform:uppercase;border-bottom:1px solid #303741;padding-bottom:6px}
@@ -62,7 +64,7 @@ body.cm-touch.sw #pG{right:auto;left:var(--e)}body.cm-touch.sw #pB{right:auto;le
 </style></head><body class="draw">
 <canvas id="d"></canvas><div id="g"></div>
 <div id="hint"></div>
-<div id="top"><button id="bInst" class="pn" title="Install app" aria-label="Install app"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 20h14"/></svg></button><button id="bNew" class="pn">↺ New</button><button id="bGo" class="pn">▶ Drive</button></div>
+<div id="top"><button id="bNew" class="pn">↺ New</button><button id="bGo" class="pn">▶ Drive</button><button id="bMe" class="pn" title="Menu" aria-label="Menu">☰</button></div>
 <div id="tools"><div id="opts" class="pn"></div><div id="tabs" class="pn"><button data-t="path">✏️ Draw</button><button data-t="surf">🛣️ Terrain</button><button data-t="elev">⛰️ Height</button><button data-t="wid">↔️ Width</button><button data-t="house">🏠 Houses</button></div></div>
 <div id="hud" class="pn"><div class="r"><div id="sp"></div><small>km/h</small></div><div id="tm"></div><div id="sc"></div><div id="hp"><i></i></div></div>
 <div id="cope" class="pn"></div><canvas id="mm" width="240" height="240"></canvas><button id="bMn" class="pn">☰</button><div id="split" class="pn"></div>
@@ -88,10 +90,11 @@ function rsmp(p,n){const c=[0];for(let i=1;i<p.length;i++)c[i]=c[i-1]+Math.hypot
  for(let i=0;i<n;i++){const s=T*i/(n-1);while(j<p.length-2&&c[j+1]<s)j++;const t=(s-c[j])/((c[j+1]-c[j])||1);o.push({x:p[j].x+(p[j+1].x-p[j].x)*t,y:p[j].y+(p[j+1].y-p[j].y)*t})}return o}
 function smooth(p,r,it){for(;it>0;it--)p=p.map((_,i)=>{if(!i||i==p.length-1)return p[i];let x=0,y=0,n=0;for(let q=-r;q<=r;q++){const a=p[i+q];if(a){x+=a.x;y+=a.y;n++}}return{x:x/n,y:y/n}});return p}
 function make(r){let len=0;for(let i=1;i<r.length;i++)len+=Math.hypot(r[i].x-r[i-1].x,r[i].y-r[i-1].y);if(r.length<8||len<150)return null;
- let P=smooth(rsmp(r,260),3,3),x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;P.forEach(p=>{x0=Math.min(x0,p.x);x1=Math.max(x1,p.x);y0=Math.min(y0,p.y);y1=Math.max(y1,p.y)});
+ let P=smooth(rsmp(r,260),3,2),x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;P.forEach(p=>{x0=Math.min(x0,p.x);x1=Math.max(x1,p.x);y0=Math.min(y0,p.y);y1=Math.max(y1,p.y)});
  const s=EXT/Math.max(x1-x0,y1-y0,60),mx=(x0+x1)/2,my=(y0+y1)/2;P=P.map(p=>({x:(p.x-mx)*s,y:(p.y-my)*s}));
  let T=0;for(let i=1;i<P.length;i++)T+=Math.hypot(P[i].x-P[i-1].x,P[i].y-P[i-1].y);
- return smooth(rsmp(P,Math.max(100,Math.min(1600,Math.round(T/SPC)))),2,2)}
+ const Q=smooth(rsmp(P,Math.max(100,Math.min(1600,Math.round(T/SPC)))),2,1),wo=Math.random()*100;let wc=0;
+ return Q.map((p,i)=>{if(i)wc+=Math.hypot(p.x-Q[i-1].x,p.y-Q[i-1].y);const a=Q[Math.min(i+1,Q.length-1)],b=Q[Math.max(i-1,0)],dx=a.x-b.x,dy=a.y-b.y,l=Math.hypot(dx,dy)||1,w=(vn(wc/45+wo,wo*.37)-.5)*1.4;return{x:p.x-dy/l*w,y:p.y+dx/l*w}})}
 function extend(P){const n=P.length,u=(a,b)=>{const dx=a.x-b.x,dy=a.y-b.y,l=Math.hypot(dx,dy)||1;return{x:dx/l,y:dy/l}},d0=u(P[0],P[3]),d1=u(P[n-1],P[n-4]),pre=[],post=[];
  for(let i=EN;i>=1;i--)pre.push({x:P[0].x+d0.x*SPC*i,y:P[0].y+d0.y*SPC*i});for(let i=1;i<=EN;i++)post.push({x:P[n-1].x+d1.x*SPC*i,y:P[n-1].y+d1.y*SPC*i});return pre.concat(P,post)}
 function randSurf(n,R){const a=new Uint8Array(n);for(let i=0;i<n;){const l=35+R()*140|0,q=R(),s=q<.4?0:q<.7?1:2;for(let j=0;j<l&&i<n;j++)a[i++]=s}return a}
@@ -102,7 +105,7 @@ function newTrack(P){const seed=Math.random()*1e9|0,R=rng(seed),Pe=extend(P),n=P
 function derive(){const P=cur.P;N=P.length;Px=P.map(p=>p.x);Pz=P.map(p=>p.y);cum=[0];for(let i=1;i<N;i++)cum[i]=cum[i-1]+Math.hypot(Px[i]-Px[i-1],Pz[i]-Pz[i-1]);
  Tx=[];Tz=[];for(let i=0;i<N;i++){const a=Math.max(0,i-1),b=Math.min(N-1,i+1),dx=Px[b]-Px[a],dz=Pz[b]-Pz[a],l=Math.hypot(dx,dz)||1;Tx.push(dx/l);Tz.push(dz/l)}
  const bx=(src,it,r)=>{let h=Float32Array.from(src);for(;it>0;it--)h=h.map((_,i)=>{let s=0,n=0;for(let q=-r;q<=r;q++){const k=i+q;if(k>=0&&k<N){s+=h[k];n++}}return s/n});return h};
- hh=bx(cur.hgt,4,4);Wv=bx(cur.w,2,3);bridges();const S=cur.s0,F=cur.f0;CP=[S+((F-S)/3|0),S+((F-S)*2/3|0),F];
+ hh=bx(cur.hgt,4,4);Wv=bx(cur.w,2,3);rough();bridges();const S=cur.s0,F=cur.f0;CP=[S+((F-S)/3|0),S+((F-S)*2/3|0),F];
  const kap=new Float32Array(N),a=[];for(let i=0;i<N;i++)a[i]=Math.atan2(Tz[i],Tx[i]);
  for(let i=0;i<N-1;i++){let d=a[i+1]-a[i];d=Math.atan2(Math.sin(d),Math.cos(d));kap[i]=d/((cum[i+1]-cum[i])||1)}
  const ks=kap.map((_,i)=>{let s=0,n=0;for(let q=-3;q<=3;q++){if(i+q>=0&&i+q<N){s+=kap[i+q];n++}}return s/n});
@@ -113,6 +116,11 @@ function derive(){const P=cur.P;N=P.length;Px=P.map(p=>p.x);Pz=P.map(p=>p.y);cum
  for(let n=0,c=Math.max(2,N/55|0);n<c;n++){const s=R()*N|0,l=12+R()*30|0,ty=R()<.55?2:3,sd=R()<.5?bl:br;for(let q=s;q<Math.min(N-4,s+l);q++)if(q>EN+6&&q<N-EN-4)sd[q]=ty;if(R()<.5){const o=sd===bl?br:bl;for(let q=s;q<Math.min(N-4,s+l);q++)if(q>EN+6&&q<N-EN-4)o[q]=ty}}
  for(let k=0;k<N;k++)if(LF[k]>.3)bl[k]=br[k]=2;
  relay()}
+function rough(){const sd=cur.seed%9973,pot=new Float32Array(N);let kf=Float32Array.from(cur.surf,v=>v?1:0);
+ for(let it=0;it<2;it++)kf=kf.map((_,i)=>{let a=0,n=0;for(let q=-5;q<=5;q++){const k=i+q;if(k>=0&&k<N){a+=kf[k];n++}}return a/n});
+ for(let i=0;i<N;i++){const s=cum[i];hh[i]+=.1*Math.sin(s/15+sd*.6)*(.3+.7*kf[i])+kf[i]*(.18*Math.sin(s/9+sd)+.11*Math.sin(s/4.7+sd*1.7))}
+ for(let i=EN;i<N-EN;i++){const sf=cur.surf[i];if(sf==0)continue;if(hs_(i,sd+31)<(sf==1?.06:.03)){const d=.07+.1*hs_(i,sd+77);for(let q=-2;q<=2;q++)if(i+q>=0&&i+q<N&&cur.surf[i+q])pot[i+q]-=d*Math.exp(-q*q/1.3)}}
+ for(let i=0;i<N;i++)hh[i]+=pot[i]}
 function bridges(){hg=Float32Array.from(hh);LF=new Float32Array(N);UN=new Uint8Array(N);const ov=[];
  for(let i=0;i<N;i++)for(let j=i+40;j<N;j++){const d=Math.sqrt((Px[i]-Px[j])**2+(Pz[i]-Pz[j])**2),w=Wv[i]+Wv[j];if(d<w+6){UN[i]=UN[j]=1;if(d<w+1)ov.push([i,j])}}
  const J={};ov.forEach(([i,j])=>{J[j]=Math.max(J[j]==null?-1e9:J[j],hh[i])});const js=Object.keys(J).map(Number).sort((a,b)=>a-b);
@@ -153,8 +161,66 @@ cv.addEventListener('pointermove',e=>{bpos={x:e.clientX,y:e.clientY};if(drawing)
 function up(){if(drawing){drawing=false;const P=make(raw);raw=[];if(P){newTrack(P);derive();build3D();setTool('surf');toast('Stage created with random terrain')}else toast('Stage too short');paint()}
  else if(stroke){stroke=null;best=null;derive();build3D();paint()}}
 cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
-$('bInst').onclick=()=>{if(ipEvt){ipEvt.prompt();ipEvt=null}else toast('Install: browser menu → Install app, or Share → Add to Home Screen')};
-addEventListener('appinstalled',()=>$('bInst').style.display='none');
+// ---------- Draw menu: install app, save / load tracks ----------
+let instDone=false,xdel=null;const TK='dr_tracks',esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const tkGet=()=>{try{const a=JSON.parse(localStorage.getItem(TK));return Array.isArray(a)?a:[]}catch(e){return[]}},tkSet=a=>{try{localStorage.setItem(TK,JSON.stringify(a));return true}catch(e){return false}};
+function tkPack(name,id){const r=v=>Math.round(v*100)/100;return{id,name,date:Date.now(),seed:cur.seed,s0:cur.s0,f0:cur.f0,P:cur.P.map(p=>[r(p.x),r(p.y)]),surf:Array.from(cur.surf).join(''),hs:Array.from(cur.hs).join(''),hgt:Array.from(cur.hgt,r),w:Array.from(cur.w,r),best:best?{t:best.t,sp:best.sp.slice()}:null}}
+function tkOpen(t){try{const n=t.P.length;if(t.surf.length!=n||t.hs.length!=n||t.hgt.length!=n||t.w.length!=n)throw 0;
+ cur={P:t.P.map(q=>({x:q[0],y:q[1]})),seed:t.seed,s0:t.s0,f0:t.f0,surf:Uint8Array.from(t.surf,Number),hgt:Float32Array.from(t.hgt),w:Float32Array.from(t.w),hs:Uint8Array.from(t.hs,Number),sid:t.id};
+ best=t.best?{t:t.best.t,sp:t.best.sp.slice()}:null;derive();build3D();setTool('surf');return true}catch(e){return false}}
+function xm(v,a){const T=tkGet(),B=(d,t,c)=>`<button data-x="${d}"${c?` class="${c}"`:''}>${t}</button>`;let h;
+ if(v=='menu')h='<h3>☰ Menu</h3>'+(instDone?'':B('inst','⬇ Install app'))+'<div class="sec">TRACK</div>'+B('sv','💾 Save track')+B('ld','📂 Load track')+B('sh','🔗 Share track')+B('cl','✕ Close');
+ else if(v=='sv'){const ex=T.find(t=>t.id==(cur&&cur.sid)),def=ex?ex.name:'Track '+(T.length+1);
+  h='<h3>💾 Save track</h3><small>Name</small><input id="xn" class="xi" type="text" maxlength="40" value="'+esc(def)+'"><small>'+(best?'Best time saved: '+fmt(best.t):'No stage time yet.')+'</small>'+B('do','Save','ed')+(ex?B('new','Save as new'):'')+B('menu','← Back')}
+ else if(v=='ld')h='<h3>📂 Load track</h3>'+(T.length?'<div class="trl">'+T.map(t=>`<div class="tr"><button class="tb tn" data-x="open:${t.id}"><b>${esc(t.name)}</b><small>🏁 ${t.best?fmt(t.best.t):'--:--.-'}</small></button><button data-x="rn:${t.id}" title="Rename">✏️</button><button data-x="dl:${t.id}" title="Delete">${xdel==t.id?'Sure?':'🗑'}</button></div>`).join('')+'</div>':'<small>No saved tracks yet.</small>')+B('menu','← Back');
+ else if(v=='rn'){const t=T.find(t=>t.id==a);if(!t)return xm('ld');h='<h3>✏️ Rename track</h3><input id="xn" class="xi" type="text" maxlength="40" value="'+esc(t.name)+'">'+B('rnok:'+a,'OK','ed')+B('ld','Cancel')}
+ ov(h);const i=$('xn');if(i){i.focus();i.select()}}
+$('bMe').onclick=()=>{xdel=null;xm('menu')};
+$('ovc').addEventListener('click',e=>{const b=e.target.closest('button[data-x]');if(!b||state!='draw')return;const[d,a]=b.dataset.x.split(':');
+ if(d=='menu'||d=='ld'){xdel=null;xm(d)}else if(d=='cl')ov('');
+ else if(d=='inst'){ov('');if(ipEvt){ipEvt.prompt();ipEvt=null}else toast('Install: browser menu → Install app, or Share → Add to Home Screen')}
+ else if(d=='sv'){if(!cur)return toast('Draw a stage first');xm('sv')}
+ else if(d=='sh'){if(!cur)return toast('Draw a stage first');shareView()}
+ else if(d=='cp'){const i=$('xu');i.select();(navigator.clipboard?navigator.clipboard.writeText(shUrl):Promise.reject()).then(()=>toast('Link copied'),()=>{try{document.execCommand('copy');toast('Link copied')}catch(e){toast('Select the link and copy it')}})}
+ else if(d=='shr'){try{navigator.share({title:'DrawRally3D track',url:shUrl}).catch(()=>{})}catch(e){}}
+ else if(d=='do'||d=='new'){const T=tkGet(),ex=d=='do'&&T.find(t=>t.id==cur.sid),name=($('xn').value.trim()||'Track '+(T.length+1)).slice(0,40),id=ex?ex.id:Date.now().toString(36)+(Math.random()*1e4|0).toString(36),p=tkPack(name,id);
+  if(ex)T[T.indexOf(ex)]=p;else T.push(p);if(tkSet(T)){cur.sid=id;ov('');toast('Track saved: '+name)}else toast('Could not save (storage full)')}
+ else if(d=='open'){const t=tkGet().find(t=>t.id==a);if(t&&tkOpen(t)){ov('');toast('Loaded: '+t.name)}else toast('Could not load track')}
+ else if(d=='rn')xm('rn',a);
+ else if(d=='rnok'){const T=tkGet(),t=T.find(t=>t.id==a);if(t){t.name=($('xn').value.trim()||t.name).slice(0,40);tkSet(T)}xm('ld')}
+ else if(d=='dl'){if(xdel==a){tkSet(tkGet().filter(t=>t.id!=a));xdel=null}else xdel=a;xm('ld')}});
+$('ovc').addEventListener('keydown',e=>{if(e.key=='Enter'&&e.target.id=='xn'){const b=$('ovc').querySelector('button.ed');if(b)b.click()}});
+$('ov').addEventListener('pointerdown',e=>{if(e.target.id=='ov'&&state=='draw')ov('')});
+// ---------- Share track by URL ----------
+let shUrl='';
+const b64=u=>{let t='';for(let i=0;i<u.length;i+=8192)t+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return btoa(t).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')},
+ unb64=t=>{t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';const q=atob(t),u=new Uint8Array(q.length);for(let i=0;i<q.length;i++)u[i]=q.charCodeAt(i);return u},
+ zpipe=async(b,s)=>{const w=s.writable.getWriter();w.write(b);w.close();return new Uint8Array(await new Response(s.readable).arrayBuffer())};
+function shEnc(){const a=[],v=n=>{n=Math.max(0,Math.round(n));while(n>127){a.push(n%128+128);n=Math.floor(n/128)}a.push(n)},z=n=>v(n<0?-2*n-1:2*n),n=cur.P.length,nm=((tkGet().find(t=>t.id==cur.sid)||{}).name||'').slice(0,40),nb=new TextEncoder().encode(nm);
+ v(1);v(cur.seed);v(n);v(cur.s0);v(cur.f0);v(nb.length);nb.forEach(c=>a.push(c));
+ let px=0,py=0,dx=0,dy=0;cur.P.forEach(p=>{const x=Math.round(p.x*20),y=Math.round(p.y*20),ex=x-px,ey=y-py;z(ex-dx);z(ey-dy);dx=ex;dy=ey;px=x;py=y});
+ let q=0;for(let i=0;i<n;i++){const h=Math.round(cur.hgt[i]*10);z(h-q);q=h}q=0;for(let i=0;i<n;i++){const h=Math.round(cur.w[i]*20);z(h-q);q=h}
+ let r=[];for(let i=0;i<n;){let j=i;while(j<n&&cur.surf[j]==cur.surf[i])j++;r.push((j-i)*3+cur.surf[i]);i=j}v(r.length);r.forEach(v);
+ r=[];let val=0;for(let i=0;i<n;){let j=i;while(j<n&&(cur.hs[j]?1:0)==val)j++;r.push(j-i);i=j;val^=1}v(r.length);r.forEach(v);
+ return Uint8Array.from(a)}
+function shDec(b){let p=0;const v=()=>{let r=0,m=1,c;do{if(p>=b.length)throw 0;c=b[p++];r+=(c&127)*m;m*=128}while(c&128);return r},z=()=>{const n=v();return n%2?-(n+1)/2:n/2};
+ if(v()!=1)throw 0;const seed=v(),n=v(),s0=v(),f0=v(),nl=v();if(n<50||n>2500||s0<1||s0>=f0||f0>=n||nl>200||p+nl>b.length)throw 0;
+ const name=new TextDecoder().decode(b.slice(p,p+nl));p+=nl;
+ const P=[],hgt=new Float32Array(n),w=new Float32Array(n),surf=new Uint8Array(n),hs=new Uint8Array(n);let px=0,py=0,dx=0,dy=0,q=0;
+ for(let i=0;i<n;i++){dx+=z();dy+=z();px+=dx;py+=dy;if(Math.abs(px)>1e5||Math.abs(py)>1e5)throw 0;P.push({x:px/20,y:py/20})}
+ for(let i=0;i<n;i++){q+=z();hgt[i]=Math.max(0,Math.min(40,q/10))}q=0;for(let i=0;i<n;i++){q+=z();w[i]=Math.max(2.3,Math.min(6.5,q/20))}
+ let runs=v(),i=0;for(let r=0;r<runs;r++){const t=v(),l=Math.floor(t/3),sf=t%3;if(sf>2||i+l>n)throw 0;surf.fill(sf,i,i+l);i+=l}if(i!=n)throw 0;
+ runs=v();i=0;let val=0;for(let r=0;r<runs;r++){const l=v();if(i+l>n)throw 0;if(val)hs.fill(1,i,i+l);i+=l;val^=1}if(i!=n)throw 0;
+ return{name,t:{P,seed,s0,f0,surf,hgt,w,hs}}}
+async function shUrlBuild(){let u=shEnc(),m='r';if(typeof CompressionStream!='undefined'){try{u=await zpipe(u,new CompressionStream('deflate-raw'));m='z'}catch(e){u=shEnc()}}
+ return location.href.split('#')[0]+'#t='+m+b64(u)}
+async function shLoad(){const m=/^#t=([zr])([\w-]+)$/.exec(location.hash);if(!m)return;
+ try{let u=unb64(m[2]);if(m[1]=='z')u=await zpipe(u,new DecompressionStream('deflate-raw'));const d=shDec(u);if(state!='draw')edit();ov('');
+  cur=d.t;best=null;derive();build3D();setTool('surf');toast('Shared track loaded'+(d.name?': '+d.name:''))}catch(e){toast('Invalid shared link')}
+ try{history.replaceState(null,'',location.href.split('#')[0])}catch(e){}}
+async function shareView(){ov('<h3>🔗 Share track</h3><small>Preparing link…</small>');try{shUrl=await shUrlBuild()}catch(e){return toast('Could not create link')}if($('ov').hidden)return;
+ ov('<h3>🔗 Share track</h3><small>Anyone opening this link gets this stage: path, terrain, surface, width and houses.</small><input id="xu" class="xi" type="text" readonly value="'+esc(shUrl)+'"><small>Link length: '+shUrl.length+' characters</small><button data-x="cp" class="ed">📋 Copy link</button>'+(navigator.share?'<button data-x="shr">📤 Share…</button>':'')+'<button data-x="menu">← Back</button>')}
+addEventListener('appinstalled',()=>instDone=true);
 $('bNew').onclick=()=>{cur=null;N=0;raw=[];setTool('path')};
 // ---------- Three.js ----------
 const renderer=new THREE.WebGLRenderer({antialias:true});$('g').appendChild(renderer.domElement);
@@ -186,9 +252,10 @@ function build3D(){mkMats();if(grp){scene.remove(grp);grp.traverse(o=>o.geometry
  const jit=k=>1+(hs_(k,9)-.5)*.14;
  for(let sf=0;sf<3;sf++){if(!cur.surf.some(v=>v==sf))continue;strip(k=>[-Wv[k],.04,Wv[k],.04],MT({vertexColors:true,map:roadTex(sf),side:THREE.DoubleSide}),k=>{const c=SRGB[sf],j=jit(k);return[c[0]*j,c[1]*j,c[2]*j]},k=>cur.surf[k]==sf,k=>[.5-Wv[k]/7,cum[k]/7,.5+Wv[k]/7,cum[k]/7])}
  for(const s of[-1,1])strip(k=>LF[k]>.3?[s*Wv[k],.03,s*(Wv[k]+1.4),.03]:[s*Wv[k],.03,s*(Wv[k]+5),-.75],mRoad,k=>{if(LF[k]>.3)return[.55,.56,.58,.55,.56,.58];const sf=cur.surf[k],c=sf?SRGB[sf]:EA,j=jit(k);return[c[0]*j,c[1]*j,c[2]*j,EA[0],EA[1],EA[2]]});
+ const bu=L=>k=>[cum[k]/L,0,cum[k]/L,1];
  for(const s of[-1,1]){const A=s<0?bl:br;
-  strip(k=>A[k]==1?[s*(Wv[k]+1.7),.55,s*(Wv[k]+1.7),1.05]:null,mTape);strip(k=>A[k]==2?[s*(Wv[k]+1),.5,s*(Wv[k]+1),.95]:null,mRail);strip(k=>A[k]==2?[s*(Wv[k]+1),-.3,s*(Wv[k]+1),.5]:null,mRailD);
-  strip(k=>A[k]==3?[s*(Wv[k]+1),-.3,s*(Wv[k]+1),.9]:null,mWall);strip(k=>A[k]==3?[s*(Wv[k]+.65),.9,s*(Wv[k]+1.35),.9]:null,mWall)}
+  strip(k=>A[k]==1?[s*(Wv[k]+1.7),.55,s*(Wv[k]+1.7),1.05]:null,mTape,0,0,bu(2));strip(k=>A[k]==2?[s*(Wv[k]+1),.5,s*(Wv[k]+1),.95]:null,mRail,0,0,bu(4));strip(k=>A[k]==2?[s*(Wv[k]+1),-.3,s*(Wv[k]+1),.5]:null,mRailD,0,0,bu(4));
+  strip(k=>A[k]==3?[s*(Wv[k]+1),-.3,s*(Wv[k]+1),.9]:null,mWall,0,0,bu(4));strip(k=>A[k]==3?[s*(Wv[k]+.65),.9,s*(Wv[k]+1.35),.9]:null,mWall,0,0,k=>[cum[k]/4,.38,cum[k]/4,.6])}
  {const mC=L(0x8d8f93);for(const s of[-1,1])strip(k=>LF[k]>.3?[s*(Wv[k]+1.4),.03,s*(Wv[k]+1.4),-(UN[k]?.6:LF[k]+.6)]:null,mC);strip(k=>LF[k]>.3?[-(Wv[k]+1.4),-.5,Wv[k]+1.4,-.5]:null,mC);
   const pp=[];for(let k=0;k<N;k+=5)if(LF[k]>3&&!UN[k])pp.push(k);if(pp.length){const im=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),mC,pp.length),o3=new THREE.Object3D();pp.forEach((k,i)=>{o3.scale.set(2.4,LF[k]-.5,2.4);o3.position.set(Px[k],hh[k]-.5-(LF[k]-.5)/2,Pz[k]);o3.rotation.y=Math.atan2(Tx[k],Tz[k]);o3.updateMatrix();im.setMatrixAt(i,o3.matrix)});im.frustumCulled=false;grp.add(im)}}
  {const ps=[];let last=-99;for(let k=0;k<N;k++)if(cum[k]-last>=10){last=cum[k];for(const s of[-1,1])if((s<0?bl:br)[k]==1){const o=s*(Wv[k]+1.7);ps.push([Px[k]-Tz[k]*o,hh[k]+.4,Pz[k]+Tx[k]*o])}}
@@ -295,7 +362,8 @@ function update(dt){
 let menuOpen=false,terrMat=null,hMat=null,U={g:0,b:0,s:0,h:0},mmF=0,mmBG,mmS=1,mmX=0,mmZ=0,gfx=1;const GY={on:0,v:0,inv:0,k:28},SND={on:true,c:null};
 try{gfx=+localStorage.getItem('dr_gfx');if(!(gfx>=0&&gfx<=2))gfx=1}catch(e){gfx=1}
 function setGfx(n){gfx=n;try{localStorage.setItem('dr_gfx',n)}catch(e){}gfxApply()}
-function gfxApply(){renderer.setPixelRatio(gfx==0?1:gfx==1?dpr:Math.min(3,dpr*1.5));renderer.setSize(innerWidth,innerHeight);scene.fog.far=gfx==0?500:1000;sun.castShadow=gfx==2;if(grp)grp.traverse(o=>{const u=o.userData;if(u.t3)o.visible=gfx==0;if(u.tbb)o.visible=gfx>0;if(u.perf)o.count=Math.ceil(u.n*(gfx==0?(u.t3?.4:.25):1))});if(terrMat){terrMat.map=gfx?terrTex(gfx):null;terrMat.needsUpdate=true}if(hMat){const q=gfx==2;hMat.w.map=q?houseTex(0):winTex();hMat.g.map=hMat.h.map=q?houseTex(1):null;hMat.c.map=q?houseTex(2):null;for(const k in hMat)hMat[k].needsUpdate=true}}
+function gfxApply(){renderer.setPixelRatio(gfx==0?1:gfx==1?dpr:Math.min(3,dpr*1.5));renderer.setSize(innerWidth,innerHeight);scene.fog.far=gfx==0?500:1000;sun.castShadow=gfx==2;if(grp)grp.traverse(o=>{const u=o.userData;if(u.t3)o.visible=gfx==0;if(u.tbb)o.visible=gfx>0;if(u.perf)o.count=Math.ceil(u.n*(gfx==0?(u.t3?.4:.25):1))});if(terrMat){terrMat.map=gfx?terrTex(gfx):null;terrMat.needsUpdate=true}if(hMat){const q=gfx==2;hMat.w.map=q?houseTex(0):winTex();hMat.g.map=hMat.h.map=q?houseTex(1):null;hMat.c.map=q?houseTex(2):null;for(const k in hMat)hMat[k].needsUpdate=true}
+ if(mTape){const q=gfx==2;[[mTape,0,0xe21b1b],[mRail,1,0xb8bec6],[mRailD,2,0x6b7079],[mWall,3,0x9a9184]].forEach(([m,i,c])=>{m.map=q?barTex(i):null;m.color.setHex(q?0xffffff:c);m.needsUpdate=true})}}
 function padOn(){try{return[...navigator.getGamepads()].some(x=>x&&x.connected)}catch(e){return false}}
 function ka(a){return cmode=='kb'&&kb[a].some(c=>c&&down[c])?1:0}
 function pad(){const u={g:Math.max(ka('g'),I.g),b:Math.max(ka('b'),I.b),h:Math.max(ka('h'),I.h),s:ka('r')-ka('l')+I.r-I.l};
@@ -427,6 +495,26 @@ addEventListener('beforeinstallprompt',e=>{e.preventDefault();ipEvt=e});
 function pwaInit(){try{const mk=n=>{const c=document.createElement('canvas');c.width=c.height=n;const q=c.getContext('2d');q.fillStyle='#e8452c';q.fillRect(0,0,n,n);q.fillStyle='#fff';q.font=(n*.55)+'px system-ui,sans-serif';q.textAlign='center';q.textBaseline='middle';q.fillText('🏁',n/2,n/2+n*.04);return c.toDataURL('image/png')},i1=mk(192),i2=mk(512),
  man={name:'DrawRally3D',short_name:'DrawRally',start_url:location.href.split('#')[0],display:'standalone',orientation:'any',background_color:'#15181d',theme_color:'#15181d',icons:[{src:i1,sizes:'192x192',type:'image/png'},{src:i2,sizes:'512x512',type:'image/png',purpose:'any maskable'}]},
  l=document.createElement('link');l.rel='manifest';l.href=URL.createObjectURL(new Blob([JSON.stringify(man)],{type:'application/manifest+json'}));document.head.appendChild(l);const a=document.createElement('link');a.rel='apple-touch-icon';a.href=i1;document.head.appendChild(a)}catch(e){}}
+// ---------- Barrier textures (Quality mode) ----------
+const BTX={};
+function barTex(i){if(BTX[i])return BTX[i];const R=rng(900+i),W=i==0?256:512,H=[64,64,128,128][i],c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
+ if(i==0){const im=g.createImageData(W,H);for(let y=0;y<H;y++)for(let x=0;x<W;x++){const red=((x+y)%64)<32,k=(y*W+x)*4,e=Math.min(y,H-1-y),f=(.88+.2*Math.sin(y/(H-1)*PI))*(e<3?.8:1),n=(hs_(x*3,y*7)-.5)*16,b=red?[226,27,27]:[240,240,232];for(let q=0;q<3;q++)im.data[k+q]=Math.max(0,Math.min(255,b[q]*f+n));im.data[k+3]=255}g.putImageData(im,0,0)}
+ else if(i==1){for(let y=0;y<H;y++){const p=y/H;let l=.76+.2*Math.sin(p*4*PI+.6);if(p<.07||p>.93)l*=.72;g.fillStyle=`rgb(${196*l|0},${203*l|0},${211*l|0})`;g.fillRect(0,y,W,1)}
+  for(let n=0;n<500;n++){g.fillStyle=R()<.5?'rgba(255,255,255,.07)':'rgba(0,0,0,.07)';g.fillRect(R()*W,R()*H,20+R()*90,1)}
+  for(let n=0;n<16;n++){const x=R()*W,gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'rgba(120,70,40,.0)');gr.addColorStop(1,'rgba(120,70,40,.22)');g.fillStyle=gr;g.fillRect(x,0,1+R()*2,H)}
+  g.fillStyle='rgba(0,0,0,.35)';g.fillRect(0,0,3,H);g.fillRect(W-2,0,2,H);g.fillStyle='rgba(255,255,255,.3)';g.fillRect(4,0,1,H);
+  for(const[x,y]of[[22,H*.3],[22,H*.7],[490,H*.3],[490,H*.7],[256,H*.5]]){g.fillStyle='#4b4f55';g.beginPath();g.arc(x,y,4.5,0,7);g.fill();g.fillStyle='#b9bec5';g.beginPath();g.arc(x-1,y-1,2.4,0,7);g.fill()}}
+ else if(i==2){const gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#4d5056');gr.addColorStop(1,'#1c1f23');g.fillStyle=gr;g.fillRect(0,0,W,H);
+  for(const x of[-7,249,505]){const pg=g.createLinearGradient(x,0,x+16,0);pg.addColorStop(0,'#6f757c');pg.addColorStop(.35,'#c3c8ce');pg.addColorStop(1,'#5a6067');g.fillStyle=pg;g.fillRect(x,0,16,H)}
+  const dg=g.createLinearGradient(0,H*.7,0,H);dg.addColorStop(0,'rgba(110,86,58,0)');dg.addColorStop(1,'rgba(110,86,58,.55)');g.fillStyle=dg;g.fillRect(0,H*.7,W,H*.3);
+  for(let n=0;n<260;n++){g.fillStyle=R()<.5?'rgba(255,255,255,.06)':'rgba(0,0,0,.12)';g.fillRect(R()*W,R()*H,1+R()*3,1+R()*3)}}
+ else{const rows=[0,43,85,128];g.fillStyle='#625b50';g.fillRect(0,0,W,H);
+  for(let r=0;r<3;r++){const y0=rows[r],y1=rows[r+1],L=[];let t=0;while(t<W){const l=90+R()*110;L.push(l);t+=l}const f=W/t,o=R()*W;let x=0;
+   for(const l0 of L){const l=l0*f,tn=.78+R()*.4,cr=158*tn,cg=148*tn*(.97+R()*.06),cb=132*tn*(.94+R()*.1);
+    for(const xx of[x+o,x+o-W]){if(xx+l<0||xx>W)continue;g.fillStyle=`rgb(${cr|0},${cg|0},${cb|0})`;g.fillRect(xx+1.5,y0+1.5,l-3,y1-y0-3);g.fillStyle='rgba(255,255,255,.2)';g.fillRect(xx+1.5,y0+1.5,l-3,1.5);g.fillRect(xx+1.5,y0+1.5,1.5,y1-y0-3);g.fillStyle='rgba(0,0,0,.28)';g.fillRect(xx+1.5,y1-3,l-3,1.5);g.fillRect(xx+l-3,y0+1.5,1.5,y1-y0-3)}x+=l}}
+  const im=g.getImageData(0,0,W,H);for(let y=0;y<H;y++)for(let x=0;x<W;x++){const k=(y*W+x)*4,n=(hs_(x*5+1,y*11+3)-.5)*26+(vn(x*.05,y*.09)-.5)*22;for(let q=0;q<3;q++)im.data[k+q]=Math.max(0,Math.min(255,im.data[k+q]+n))}g.putImageData(im,0,0);
+  for(let n=0;n<7;n++){const x=R()*W,gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'rgba(40,35,28,.22)');gr.addColorStop(1,'rgba(40,35,28,0)');g.fillStyle=gr;g.fillRect(x,0,3+R()*8,H)}}
+ const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return BTX[i]=t}
 const TEXC={};
 function terrTex(q){if(TEXC[q])return TEXC[q];const S=q==2?512:256,c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d'),im=g.createImageData(S,S),P=[8,16,32,64];
  const tn=(x,y,p)=>{const i=Math.floor(x),j=Math.floor(y),u=x-i,v=y-j,s=u*u*(3-2*u),t=v*v*(3-2*v),H=(a,b)=>hs_(((a%p)+p)%p,((b%p)+p)%p);return H(i,j)*(1-s)*(1-t)+H(i+1,j)*s*(1-t)+H(i,j+1)*(1-s)*t+H(i+1,j+1)*s*t};
@@ -440,5 +528,5 @@ function nightStep(x,y,z,sl){const sn=Math.sin(car.h),cs=Math.cos(car.h);GLT.pos
 let last=performance.now();
 function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-last)/1000);last=now;U=pad();sndStep();if(state=='drive'&&cur){if(!menuOpen)update(dt);cloudStep(now/1000);renderer.render(scene,camera)}}
 function rs(){const w=innerWidth,h=innerHeight;dpr=Math.min(devicePixelRatio||1,2);cv.width=w*dpr;cv.height=h*dpr;gfxApply();camera.aspect=w/h;camera.fov=w<h?74:62;camera.updateProjectionMatrix();if(cur&&N)relay();paint()}
-addEventListener('resize',rs);rs();applyTc();pwaInit();cloudInit();applyNight();if(window.matchMedia&&matchMedia('(display-mode: standalone)').matches||navigator.standalone)$('bInst').style.display='none';setTool('path');requestAnimationFrame(loop);
+addEventListener('resize',rs);rs();applyTc();pwaInit();cloudInit();applyNight();if(window.matchMedia&&matchMedia('(display-mode: standalone)').matches||navigator.standalone)instDone=true;setTool('path');shLoad();addEventListener('hashchange',shLoad);requestAnimationFrame(loop);
 </script></body></html>
